@@ -15,6 +15,8 @@
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* 修正 iOS 上 select 的預設樣式 */
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="bg-gray-100 pb-24 text-gray-800">
@@ -46,7 +48,7 @@
                         <p class="text-sm font-medium opacity-90 mb-1">健康・美味・素食首選</p>
                         <div class="flex items-center text-xs bg-green-600/90 px-2 py-1 rounded w-fit">
                             <span class="w-2 h-2 bg-green-300 rounded-full mr-1 animate-pulse"></span>
-                            營業中 10:00 - 20:00
+                            營業中 09:00 - 12:30
                         </div>
                     </div>
                 </div>
@@ -154,10 +156,22 @@
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">外送地址 <span class="text-red-500">*</span></label>
                         <input v-model="form.address" type="text" required placeholder="請輸入完整地址" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
                     </div>
+                    
+                    <!-- 【修改重點】：這裡改成了下拉選單 -->
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">預計送達時間 <span class="text-red-500">*</span></label>
-                        <input v-model="form.time" type="time" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">預計取餐時間 (09:00 - 12:30) <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <select v-model="form.time" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm text-gray-700 bg-white">
+                                <option value="" disabled>請選擇時間</option>
+                                <option v-for="time in timeOptions" :key="time" :value="time">{{ time }}</option>
+                            </select>
+                            <!-- 下拉箭頭 ICON -->
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
+                        </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">備註 (選填)</label>
                         <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
@@ -242,6 +256,7 @@
                 const cart = ref({});
                 const profile = ref({ displayName: '', pictureUrl: '' });
                 const orderId = ref('');
+                const timeOptions = ref([]); // 新增：存放時間選項
                 
                 const form = ref({
                     unit: '',
@@ -250,6 +265,41 @@
                     time: '',
                     remark: ''
                 });
+
+                // ==========================================
+                // 產生 09:00 - 12:30 的時間選項 (間隔 10 分鐘)
+                // ==========================================
+                const generateTimeOptions = () => {
+                    let h = 9;   // 開始：9點
+                    let m = 0;   // 開始：0分
+                    const endH = 12;  // 結束：12點
+                    const endM = 30;  // 結束：30分
+                    const interval = 10; // 間隔
+
+                    const options = [];
+                    
+                    while (true) {
+                        // 檢查是否超過結束時間
+                        if (h > endH || (h === endH && m > endM)) {
+                            break;
+                        }
+
+                        const hStr = h.toString().padStart(2, '0');
+                        const mStr = m.toString().padStart(2, '0');
+                        options.push(`${hStr}:${mStr}`);
+
+                        // 增加時間
+                        m += interval;
+                        if (m >= 60) {
+                            m -= 60;
+                            h++;
+                        }
+                    }
+                    timeOptions.value = options;
+                };
+
+                // 初始化時間選項
+                generateTimeOptions();
 
                 // ==========================================
                 // 菜單設定區
@@ -371,7 +421,8 @@
                 return {
                     step, isLoading, loadingText, cart, profile, form, menu,
                     totalQty, totalPrice,
-                    updateCart, submitOrder, closeLiff, getMenuItem, resetForm, handleImageError
+                    updateCart, submitOrder, closeLiff, getMenuItem, resetForm, handleImageError,
+                    timeOptions // 記得回傳給 Template 使用
                 };
             }
         }).mount('#app');
