@@ -12,59 +12,98 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-100 pb-24">
+<body class="bg-[#f3f8f2] pb-24 text-gray-800"> <!-- 背景改為極淡的綠色 -->
 
     <div id="app">
         
-        <!-- 載入中遮罩 -->
+        <!-- 全局載入遮罩 -->
         <div v-if="isLoading" class="loading-overlay">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
-            <p class="text-gray-600">{{ loadingText }}</p>
-            <!-- 顯示是否為測試模式 -->
-            <p v-if="isTestMode" class="text-xs text-orange-500 mt-2 font-bold">(預覽測試模式)</p>
+            <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-[#06C755] mb-4"></div>
+            <p class="text-gray-600 font-medium">{{ loadingText }}</p>
         </div>
 
         <!-- 頂部導航 -->
         <div class="bg-white sticky top-0 z-10 shadow-sm px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center">
-                <h1 class="text-lg font-bold text-gray-800">千葉素食便當</h1>
-                <span v-if="isTestMode" class="ml-2 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">測試中</span>
+            <div class="flex items-center gap-2">
+                <!-- 新增：素食葉子圖示 -->
+                <div class="bg-green-100 p-1.5 rounded-full">
+                    <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17,8C8,10,5.9,16.17,3.82,21.34L5.71,22l1-2.3A4.49,4.49,0,0,0,8,20C19,20,22,3,22,3,21,5,14,5.25,9,6.25S2,11.5,2,13.5a6.22,6.22,0,0,0,1.75,3.75C7,13,15,7,17,8Z"/></svg>
+                </div>
+                <h1 class="text-lg font-bold text-gray-800 tracking-wide">千葉素食便當</h1>
             </div>
-            <div class="flex items-center text-xs text-gray-500">
-                <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-6 h-6 rounded-full mr-2 object-cover">
-                {{ profile.displayName || '載入中...' }}
+            <!-- 顯示登入者資訊 -->
+            <div class="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 rounded-full mr-2 object-cover border border-gray-200">
+                <span class="max-w-[80px] truncate">{{ profile.displayName || '訪客' }}</span>
             </div>
         </div>
 
         <!-- 商店形象圖 -->
-        <div class="relative h-40 bg-gray-300">
-            <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800&h=400" class="w-full h-full object-cover">
-            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                <p class="text-white text-sm font-medium">營業中・10:00 - 20:00</p>
+        <div class="relative h-48 bg-gray-300 overflow-hidden">
+            <!-- 換成更強調新鮮蔬菜的圖片 -->
+            <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800&h=400" class="w-full h-full object-cover">
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-900/80 to-transparent p-4 pt-12">
+                <div class="flex items-end justify-between text-white">
+                    <div>
+                        <p class="text-sm font-medium opacity-90 mb-1 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            天然食材・純素・健康
+                        </p>
+                        <div class="flex items-center text-xs bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg w-fit border border-white/30">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-1 animate-pulse"></span>
+                            營業中 10:00 - 20:00
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- 步驟 1: 菜單列表 -->
-        <div v-if="step === 1" class="p-4 space-y-4">
-            <h2 class="font-bold text-gray-800 border-l-4 border-green-500 pl-2">熱門餐點</h2>
+        <div v-if="step === 1" class="p-4 space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between border-l-4 border-[#06C755] pl-3 py-1">
+                <h2 class="font-bold text-lg text-gray-800">精選素食餐點</h2>
+                <span class="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">健康無負擔</span>
+            </div>
             
-            <div v-for="item in menu" :key="item.id" class="bg-white rounded-xl p-3 shadow-sm flex gap-4">
-                <img :src="item.image" class="w-24 h-24 object-cover rounded-lg bg-gray-200 shrink-0">
-                <div class="flex-1 flex flex-col justify-between">
+            <div v-for="item in menu" :key="item.id" class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 transition-all hover:shadow-md">
+                <!-- 圖片區塊 -->
+                <div class="w-24 h-24 rounded-lg bg-gray-50 overflow-hidden shrink-0 relative">
+                    <img :src="item.image" class="w-full h-full object-cover" loading="lazy">
+                </div>
+
+                <!-- 資訊區塊 -->
+                <div class="flex-1 flex flex-col justify-between py-0.5">
                     <div>
-                        <h3 class="font-bold text-gray-800">{{ item.name }}</h3>
-                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ item.category }}</span>
+                        <h3 class="font-bold text-gray-800 text-[15px] leading-tight mb-1">{{ item.name }}</h3>
+                        <span class="inline-block text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">{{ item.category }}</span>
                     </div>
+                    
                     <div class="flex justify-between items-end">
                         <span class="text-lg font-bold text-gray-900">${{ item.price }}</span>
-                        <!-- 加減按鈕 -->
-                        <div class="flex items-center gap-3">
-                            <button v-if="cart[item.id] > 0" @click="updateCart(item.id, -1)" class="w-7 h-7 rounded-full border border-green-600 text-green-600 flex items-center justify-center">-</button>
-                            <span v-if="cart[item.id] > 0" class="font-medium min-w-[1rem] text-center">{{ cart[item.id] }}</span>
-                            <button @click="updateCart(item.id, 1)" class="w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center shadow">+</button>
+                        
+                        <!-- 加減按鈕控制 -->
+                        <div class="flex items-center bg-gray-50 rounded-lg p-1">
+                            <button 
+                                v-if="cart[item.id] > 0" 
+                                @click="updateCart(item.id, -1)" 
+                                class="w-7 h-7 rounded-md bg-white border border-gray-200 text-gray-600 flex items-center justify-center active:scale-95 transition-transform"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"/></svg>
+                            </button>
+                            
+                            <span v-if="cart[item.id] > 0" class="font-bold text-gray-800 min-w-[1.5rem] text-center text-sm">{{ cart[item.id] }}</span>
+                            
+                            <button 
+                                @click="updateCart(item.id, 1)" 
+                                class="w-7 h-7 rounded-md bg-[#06C755] text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -72,89 +111,106 @@
         </div>
 
         <!-- 步驟 2: 結帳表單 -->
-        <div v-if="step === 2" class="p-4 space-y-4">
-            <button @click="step = 1" class="text-sm text-gray-500 flex items-center mb-2">
+        <div v-if="step === 2" class="p-4 space-y-4 animate-fade-in">
+            <!-- 返回按鈕 -->
+            <button @click="step = 1" class="text-sm text-gray-500 flex items-center mb-2 px-2 py-1 rounded hover:bg-white hover:shadow-sm transition-all">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 返回修改餐點
             </button>
 
-            <div class="bg-white rounded-xl p-4 shadow-sm">
-                <h3 class="font-bold text-gray-800 border-b pb-2 mb-3">訂單內容</h3>
-                <div v-for="(qty, id) in cart" :key="id" class="flex justify-between text-sm mb-2">
-                    <span v-if="qty > 0">{{ getMenuItem(id).name }} x {{ qty }}</span>
-                    <span v-if="qty > 0" class="font-medium">${{ getMenuItem(id).price * qty }}</span>
+            <!-- 訂單摘要 -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-green-50">
+                <h3 class="font-bold text-gray-800 border-b border-gray-100 pb-3 mb-3 flex justify-between items-center">
+                    訂單內容
+                    <span class="text-xs font-normal text-green-700 bg-green-50 px-2 py-1 rounded">共 {{ totalQty }} 項</span>
+                </h3>
+                <div class="space-y-2 max-h-[200px] overflow-y-auto hide-scrollbar">
+                    <div v-for="(qty, id) in cart" :key="id" class="flex justify-between text-sm py-1">
+                        <div class="flex items-center">
+                            <span class="w-5 h-5 flex items-center justify-center bg-gray-100 text-gray-600 text-[10px] rounded mr-2">{{ qty }}</span>
+                            <span class="text-gray-700">{{ getMenuItem(id).name }}</span>
+                        </div>
+                        <span class="font-medium text-gray-900">${{ getMenuItem(id).price * qty }}</span>
+                    </div>
                 </div>
-                <div class="flex justify-between pt-2 border-t font-bold text-lg text-green-600">
-                    <span>總計</span>
+                <div class="flex justify-between pt-3 mt-2 border-t border-dashed border-gray-200 font-bold text-lg text-[#06C755]">
+                    <span>總金額</span>
                     <span>${{ totalPrice }}</span>
                 </div>
             </div>
 
-            <form @submit.prevent="submitOrder" class="bg-white rounded-xl p-4 shadow-sm space-y-4">
-                <h3 class="font-bold text-gray-800 border-b pb-2">外送資訊</h3>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">單位/公司名稱</label>
-                    <input v-model="form.unit" type="text" required placeholder="例如：台積電 F12" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+            <!-- 填寫資料表單 -->
+            <form @submit.prevent="submitOrder" class="bg-white rounded-xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center mb-2">
+                    <span class="w-1 h-5 bg-[#06C755] mr-2 rounded-full"></span>
+                    <h3 class="font-bold text-gray-800">外送資訊</h3>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">聯絡電話</label>
-                    <input v-model="form.phone" type="tel" required placeholder="09xx-xxx-xxx" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">外送地址</label>
-                    <input v-model="form.address" type="text" required placeholder="輸入完整地址" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">預計送達時間</label>
-                    <input v-model="form.time" type="time" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
-                    <textarea v-model="form.remark" placeholder="例如：不要香菜、少油、自備餐具..." rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></textarea>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">單位 / 公司名稱 <span class="text-red-500">*</span></label>
+                        <input v-model="form.unit" type="text" required placeholder="例如：台積電 F12" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">聯絡電話 <span class="text-red-500">*</span></label>
+                        <input v-model="form.phone" type="tel" required placeholder="09xx-xxx-xxx" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">外送地址 <span class="text-red-500">*</span></label>
+                        <input v-model="form.address" type="text" required placeholder="請輸入完整地址" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">預計送達時間 <span class="text-red-500">*</span></label>
+                        <input v-model="form.time" type="time" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">備註 (選填)</label>
+                        <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
+                    </div>
                 </div>
             </form>
         </div>
 
         <!-- 步驟 3: 成功畫面 -->
-        <div v-if="step === 3" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <div v-if="step === 3" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+            <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 shadow-sm border border-green-100">
+                <svg class="w-12 h-12 text-[#06C755]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">訂單已送出！</h2>
-            <p class="text-gray-500 mb-6">商家已收到您的訂單通知。<br>訂單編號：{{ orderId }}</p>
+            <p class="text-gray-500 mb-8 leading-relaxed">感謝您選擇千葉素食<br>我們正在用心準備您的餐點 🌱</p>
             
-            <!-- 顯示測試模式提示 -->
-            <div v-if="isTestMode" class="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm mb-4 mx-4">
-                ⚠️ 目前為測試預覽模式<br>資料不會真的傳送給商家
+            <div class="w-full max-w-xs space-y-3">
+                <button @click="closeLiff" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-green-200 transition-all">
+                    關閉視窗
+                </button>
+                <button @click="resetForm" class="w-full bg-white text-gray-500 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors border border-gray-100">
+                    再點一單
+                </button>
             </div>
-
-            <button @click="closeLiff" class="bg-gray-800 text-white px-8 py-3 rounded-lg font-bold">關閉視窗</button>
         </div>
 
         <!-- 底部結帳按鈕 (只在步驟1顯示) -->
-        <div v-if="step === 1 && totalQty > 0" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-lg z-20">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-sm text-gray-500">已選 {{ totalQty }} 項</span>
+        <div v-if="step === 1 && totalQty > 0" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
+            <div class="flex justify-between items-center mb-2 px-1">
+                <span class="text-sm font-medium text-gray-500">已選 <strong class="text-[#06C755]">{{ totalQty }}</strong> 項</span>
                 <span class="text-xl font-bold text-gray-900">${{ totalPrice }}</span>
             </div>
-            <button @click="step = 2" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">
-                去填寫資料
+            <button @click="step = 2" class="w-full bg-[#06C755] text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-green-200 active:scale-[0.98] transition-all flex items-center justify-center">
+                去填寫資料 <span class="ml-2 text-xl">→</span>
             </button>
         </div>
 
         <!-- 底部提交按鈕 (只在步驟2顯示) -->
-        <div v-if="step === 2" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t shadow-lg z-20">
-            <button @click="submitOrder" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">
-                確認送出訂單 (${{ totalPrice }})
+        <div v-if="step === 2" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
+            <div class="text-center mb-2 text-xs text-gray-400">確認無誤後請按下送出</div>
+            <button @click="submitOrder" class="w-full bg-[#06C755] text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-green-200 active:scale-[0.98] transition-all">
+                確認送出訂單 • ${{ totalPrice }}
             </button>
         </div>
 
     </div>
 
     <script>
-        // ==========================================
-        // 設定區
-        // ==========================================
         const CONFIG = {
             LIFF_ID: '2008669562-G6If46m2', 
             API_URL: 'https://script.google.com/macros/s/AKfycbxiag2vvebq1Fm6501meAUYXkE1IKZB-1CKzZMScB1WBWqaLBvwqxssEEXyixD8Capr/exec'
@@ -166,8 +222,7 @@
             setup() {
                 const step = ref(1);
                 const isLoading = ref(true);
-                const loadingText = ref('載入中...');
-                const isTestMode = ref(false); // 狀態：是否為測試模式
+                const loadingText = ref('正在準備素食菜單...');
                 const cart = ref({});
                 const profile = ref({ displayName: '', pictureUrl: '' });
                 const orderId = ref('');
@@ -180,65 +235,34 @@
                     remark: ''
                 });
 
-                // 菜單資料
+                // 更新後的菜單圖片 (使用 Unsplash 上看起來像素食的圖片)
                 const menu = ref([
-                    { id: 1, name: "白飯便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=300" },
-                    { id: 2, name: "五穀飯便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1644365282247-4e94b1509b55?auto=format&fit=crop&q=80&w=300" },
-                    { id: 3, name: "壽司便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&q=80&w=300" },
-                    { id: 4, name: "米粉便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&q=80&w=300" },
-                    { id: 5, name: "炒飯便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1603133872878-684f208fb74b?auto=format&fit=crop&q=80&w=300" },
-                    { id: 6, name: "炒麵便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&q=80&w=300" },
-                    { id: 7, name: "碗粿便當", price: 80, category: "便當", image: "https://plus.unsplash.com/premium_photo-1664648005869-77569eb2e076?auto=format&fit=crop&q=80&w=300" },
-                    { id: 8, name: "冰糖白木耳", price: 25, category: "甜點", image: "https://images.unsplash.com/photo-1626139556209-15822b3cb225?auto=format&fit=crop&q=80&w=300" },
-                    { id: 9, name: "麻辣豆腐湯", price: 40, category: "湯品", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=300" },
-                    { id: 10, name: "當歸湯", price: 40, category: "湯品", image: "https://images.unsplash.com/photo-1541018698539-75a7c5b61f87?auto=format&fit=crop&q=80&w=300" },
-                    { id: 11, name: "味噌湯", price: 30, category: "湯品", image: "https://images.unsplash.com/photo-1547592166-23acbe54099c?auto=format&fit=crop&q=80&w=300" }
+                    { id: 1, name: "白飯便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=300" }, // 綠色蔬菜沙拉碗風格
+                    { id: 2, name: "五穀飯便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1511690656952-34342d5c2895?auto=format&fit=crop&q=80&w=300" }, // 穀物與蔬菜
+                    { id: 3, name: "壽司便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&q=80&w=300" }, // 壽司 (看起來像小黃瓜卷)
+                    { id: 4, name: "米粉便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&q=80&w=300" }, // 炒米粉風格
+                    { id: 5, name: "炒飯便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1603133872878-684f208fb74b?auto=format&fit=crop&q=80&w=300" }, // 炒飯
+                    { id: 6, name: "炒麵便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=300" }, // 炒麵
+                    { id: 7, name: "碗粿便當", price: 80, category: "便當", image: "https://images.unsplash.com/photo-1541696432-82c6da8ce7ea?auto=format&fit=crop&q=80&w=300" }, // 蒸食意象
+                    { id: 8, name: "冰糖白木耳", price: 25, category: "甜點", image: "https://images.unsplash.com/photo-1541781777631-fa95371aad95?auto=format&fit=crop&q=80&w=300" }, // 甜湯
+                    { id: 9, name: "麻辣豆腐湯", price: 40, category: "湯品", image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=300" }, // 豆腐湯
+                    { id: 10, name: "當歸湯", price: 40, category: "湯品", image: "https://images.unsplash.com/photo-1594221708779-94832f4320d1?auto=format&fit=crop&q=80&w=300" }, // 中藥湯
+                    { id: 11, name: "味噌湯", price: 30, category: "湯品", image: "https://images.unsplash.com/photo-1547592166-23acbe54099c?auto=format&fit=crop&q=80&w=300" }  // 味噌湯
                 ]);
 
-                // 啟動測試模式 (模擬顧客資料)
-                const startTestMode = (reason) => {
-                    console.log('進入測試模式:', reason);
-                    isTestMode.value = true;
-                    profile.value = { 
-                        displayName: '預覽顧客', 
-                        pictureUrl: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' 
-                    };
-                    isLoading.value = false;
-                };
-
                 const initLiff = async () => {
-                    // 如果網址包含 localhost 或 file (本地開發)，直接進測試模式，不跑 LIFF
-                    if (location.hostname === "localhost" || location.protocol === "file:") {
-                        startTestMode("本地開發環境");
-                        return;
-                    }
-
                     try {
-                        // 設定 3 秒超時，如果 LIFF 連太久就放棄 (避免畫面卡住)
-                        const timeoutPromise = new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error("Timeout")), 3000)
-                        );
-                        
-                        await Promise.race([
-                            liff.init({ liffId: CONFIG.LIFF_ID }),
-                            timeoutPromise
-                        ]);
-
+                        await liff.init({ liffId: CONFIG.LIFF_ID });
                         if (liff.isLoggedIn()) {
                             const p = await liff.getProfile();
                             profile.value = p;
                         } else {
-                            // 這裡不強制 login，避免在 iframe 內被封鎖
-                            // 改為顯示按鈕讓使用者自己登入，或自動進入訪客模式
-                            if (!liff.isInClient()) {
-                                startTestMode("網頁瀏覽器模式 (未登入)");
-                                return;
-                            }
-                            liff.login();
+                            console.log('使用者未登入，以訪客身分繼續');
+                            profile.value = { displayName: '訪客', pictureUrl: '' };
                         }
                     } catch (err) {
-                        // 任何錯誤都切換到測試模式，確保畫面看得到
-                        startTestMode("LIFF 初始化受阻或環境不支援");
+                        console.error('LIFF 初始化失敗', err);
+                        profile.value = { displayName: '訪客', pictureUrl: '' };
                     } finally {
                         isLoading.value = false;
                     }
@@ -268,12 +292,12 @@
 
                 const submitOrder = async () => {
                     if (!form.value.unit || !form.value.phone || !form.value.address || !form.value.time) {
-                        alert('請填寫完整資訊');
+                        alert('請填寫所有必填欄位 (*) 喔！');
                         return;
                     }
 
                     isLoading.value = true;
-                    loadingText.value = '訂單傳送中...';
+                    loadingText.value = '正在傳送訂單...';
 
                     const items = Object.entries(cart.value).map(([id, qty]) => {
                         const item = getMenuItem(id);
@@ -282,54 +306,48 @@
 
                     const payload = {
                         ...form.value,
-                        name: profile.value.displayName || '顧客',
+                        name: profile.value.displayName || '訪客',
                         items: items,
                         totalPrice: totalPrice.value
                     };
 
                     try {
-                        // 如果是測試模式，直接假裝成功
-                        if (isTestMode.value) {
-                            console.log('測試訂單資料:', payload);
-                            await new Promise(r => setTimeout(r, 800)); // 假裝跑一下
-                            orderId.value = "TEST-1234 (測試單)";
-                        } else {
-                            // 真實送出
-                            await fetch(CONFIG.API_URL, {
-                                method: 'POST',
-                                mode: 'no-cors',
-                                headers: { 'Content-Type': 'text/plain' },
-                                body: JSON.stringify(payload)
-                            });
-                            orderId.value = "已送出";
-                        }
+                        await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            mode: 'no-cors', 
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify(payload)
+                        });
                         
                         setTimeout(() => {
                             step.value = 3;
                             isLoading.value = false;
-                        }, 500);
+                        }, 800);
 
                     } catch (err) {
-                        // 即使 fetch 失敗 (例如被瀏覽器擋 CORS)，也讓使用者看到成功畫面，但提示可能有誤
-                        console.error(err);
-                        orderId.value = "已送出 (連線異常，請確認通知)";
-                        step.value = 3;
+                        alert('網路連線似乎有問題，請檢查網路後重試。');
                         isLoading.value = false;
                     }
+                };
+
+                const resetForm = () => {
+                    cart.value = {};
+                    step.value = 1;
+                    form.value.remark = ''; 
                 };
 
                 const closeLiff = () => {
                     if (liff.isInClient()) {
                         liff.closeWindow();
                     } else {
-                        window.location.reload();
+                        alert('您可以直接關閉此視窗');
                     }
                 };
 
                 return {
-                    step, isLoading, loadingText, cart, profile, form, menu, orderId, isTestMode,
+                    step, isLoading, loadingText, cart, profile, form, menu,
                     totalQty, totalPrice,
-                    updateCart, submitOrder, closeLiff, getMenuItem
+                    updateCart, submitOrder, closeLiff, getMenuItem, resetForm
                 };
             }
         }).mount('#app');
