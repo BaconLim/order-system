@@ -20,17 +20,33 @@
 
     <div id="app" v-cloak>
         
-        <!-- 【全站公休擋板】 -->
-        <!-- 當 Google 表單 B1 格子不是 'open' 時，這個擋板會出現 -->
-        <div v-if="isShopClosed" class="fixed inset-0 z-[60] bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
+        <!-- 【全站狀態擋板 1：暫停外送 (stop)】 -->
+        <!-- 修正：stop 代表暫停外送，但店裡可能還忙得過來 -->
+        <div v-if="shopStatus === 'stop'" class="fixed inset-0 z-[60] bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
-                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <!-- 暫停圖示 -->
+                <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h2 class="text-3xl font-bold mb-4">本日公休</h2>
-            <p class="text-gray-400 mb-8 text-lg">抱歉，我們今天休息喔！<br>請於營業時間再來光臨。</p>
+            <h2 class="text-3xl font-bold mb-4">暫停外送</h2>
+            <p class="text-gray-400 mb-8 text-lg">抱歉，目前訂單較多暫停外送！<br>請直接來店內夾菜選購。</p>
             <div class="border border-gray-700 rounded-xl p-4 w-full max-w-xs">
                 <p class="text-xs text-green-500 font-bold mb-2">營業時間</p>
-                <p class="text-sm">週一至週日 09:00 - 12:30</p>
+                <p class="text-sm">週一至週六 09:00 - 20:00<br>週日 09:00 - 14:00</p>
+            </div>
+        </div>
+
+        <!-- 【全站狀態擋板 2：本日公休 (closed)】 -->
+        <!-- 修正：closed 代表完全休息，不營業 -->
+        <div v-if="shopStatus === 'closed'" class="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
+            <div class="w-24 h-24 bg-red-900/30 rounded-full flex items-center justify-center mb-6">
+                <!-- 禁止/公休圖示 -->
+                <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+            </div>
+            <h2 class="text-3xl font-bold mb-4">本日公休</h2>
+            <p class="text-gray-400 mb-8 text-lg">抱歉，我們今天休息喔！<br>期待您下次營業時間光臨。</p>
+            <div class="border border-red-900/50 bg-red-900/10 rounded-xl p-4 w-full max-w-xs">
+                <p class="text-xs text-red-400 font-bold mb-2">STORE CLOSED</p>
+                <p class="text-sm text-gray-300">千葉素食便當</p>
             </div>
         </div>
 
@@ -226,7 +242,7 @@
                 const cart = ref({});
                 const profile = ref({ displayName: '', pictureUrl: '' });
                 const timeOptions = ref([]);
-                const isShopClosed = ref(false); // 控制公休擋板
+                const shopStatus = ref('open'); // 狀態：'open', 'closed', 'stop'
                 
                 const form = ref({
                     unit: '',
@@ -257,8 +273,8 @@
                         const res = await fetch(CONFIG.API_URL);
                         const data = await res.json();
                         // 讀取 Google 表單 B1 格子的值
-                        if (data.status !== 'open') {
-                            isShopClosed.value = true;
+                        if (data.status) {
+                            shopStatus.value = data.status;
                         }
                     } catch (e) {
                         console.error('檢查狀態失敗', e);
@@ -273,7 +289,7 @@
                     { id: 5, name: "炒飯便當", price: 80, category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_炒飯便當_1.jpg" },
                     { id: 6, name: "炒麵便當", price: 80, category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_炒麵便當_2.jpg" },
                     { id: 7, name: "碗粿便當", price: 80, category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_碗粿便當_1.jpg" },
-                    { id: 8, name: "冰糖白木耳", price: 30, category: "甜點", image: "https://baconlim.github.io/order-system/千草木素食便當_冰糖白木耳.jpg" },
+                    { id: 8, name: "冰糖白木耳", price: 25, category: "甜點", image: "https://baconlim.github.io/order-system/千草木素食便當_冰糖白木耳.jpg" },
                     { id: 9, name: "麻辣豆腐湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_麻辣豆腐湯_1.jpg" },
                     { id: 10, name: "當歸湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_當歸湯.jpg" },
                     { id: 11, name: "味噌湯", price: 30, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_味噌湯.jpg" }
@@ -320,7 +336,7 @@
                     } catch (err) { alert('網路連線似乎有問題'); isLoading.value = false; }
                 };
 
-                return { step, isLoading, loadingText, cart, profile, form, menu, totalQty, totalPrice, updateCart, submitOrder, closeLiff, getMenuItem, resetForm, handleImageError, timeOptions, isShopClosed };
+                return { step, isLoading, loadingText, cart, profile, form, menu, totalQty, totalPrice, updateCart, submitOrder, closeLiff, getMenuItem, resetForm, handleImageError, timeOptions, shopStatus };
             }
         }).mount('#app');
     </script>
