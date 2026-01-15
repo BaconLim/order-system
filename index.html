@@ -2,7 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 修改：限制縮放比例，解決雙擊放大問題 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>千葉素食便當 - 線上點餐</title>
     <!-- 引入 Vue.js -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -11,7 +12,11 @@
     <!-- 引入 LINE LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        /* 修改：加入 touch-action: manipulation 禁止雙擊縮放行為 */
+        html, body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            touch-action: manipulation; 
+        }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -377,7 +382,9 @@
                     { id: 8, name: "冰糖白木耳", price: 30, category: "甜點", image: "https://baconlim.github.io/order-system/千草木素食便當_冰糖白木耳.jpg" },
                     { id: 9, name: "麻辣豆腐湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_麻辣豆腐湯_1.jpg" },
                     { id: 10, name: "當歸湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_當歸湯.jpg" },
-                    { id: 11, name: "味噌湯", price: 30, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_味噌湯.jpg" }
+                    { id: 11, name: "味噌湯", price: 30, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_味噌湯.jpg" },
+                    // 新增特製餐點欄位
+                    { id: 12, name: "特製餐點(填選後，進入備註欄填寫內容)", price: 0, category: "特製", image: "https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&q=80&w=300" }
                 ]);
 
                 const handleImageError = (e) => { e.target.src = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=300"; };
