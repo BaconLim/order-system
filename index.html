@@ -2,17 +2,12 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- 修改：限制縮放比例，解決雙擊放大問題 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>千葉素食便當 - 線上點餐</title>
-    <!-- 引入 Vue.js -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 LINE LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        /* 修改：加入 touch-action: manipulation 禁止雙擊縮放行為 */
         html, body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
             touch-action: manipulation; 
@@ -20,19 +15,20 @@
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* 修正 iOS 上 select 的預設樣式 */
         select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
         [v-cloak] { display: none; }
-        /* 歷史紀錄滑入動畫 */
         .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        /* 增加淡入動畫 */
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body class="bg-gray-100 pb-24 text-gray-800">
 
     <div id="app" v-cloak>
         
-        <!-- 【全站狀態擋板 1：暫停外送 (stop)】 -->
+        <!-- 狀態擋板邏輯保持不變 -->
         <div v-if="shopStatus === 'stop'" class="fixed inset-0 z-[60] bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -45,7 +41,6 @@
             </div>
         </div>
 
-        <!-- 【全站狀態擋板 2：本日公休 (closed)】 -->
         <div v-if="shopStatus === 'closed'" class="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-red-900/30 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
@@ -59,12 +54,13 @@
         </div>
 
         <!-- 載入中遮罩 -->
+        <!-- 修改邏輯：這裡只在初始載入的一瞬間顯示，不再等待 LIFF -->
         <div v-if="isLoading" class="loading-overlay">
             <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-[#06C755] mb-4"></div>
             <p class="text-gray-600 font-medium">{{ loadingText }}</p>
         </div>
 
-        <!-- 【歷史訂單側邊欄】(新增功能) -->
+        <!-- 歷史訂單側邊欄 -->
         <div v-if="showHistory" class="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm transition-opacity" @click.self="showHistory = false">
             <div class="absolute right-0 top-0 bottom-0 w-4/5 max-w-md bg-white shadow-2xl slide-in-right flex flex-col">
                 <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
@@ -113,24 +109,31 @@
             <h1 class="text-lg font-bold text-gray-800 tracking-wide">千葉素食便當</h1>
             
             <div class="flex items-center gap-2">
-                <!-- 歷史訂單按鈕 (樣式調整：增加 bg-gray-100 與 padding，使其在無訂單時也明顯可見) -->
                 <button @click="showHistory = true" class="p-2 mr-1 text-gray-600 bg-gray-100 hover:bg-gray-200 hover:text-[#06C755] rounded-full transition-colors relative">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <!-- 紅點提示 (僅在有資料時顯示) -->
                     <span v-if="orderHistory.length > 0" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                 </button>
 
-                <!-- 顯示登入者資訊 -->
-                <div class="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                    <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 rounded-full mr-2 object-cover border border-gray-200">
-                    <span class="max-w-[80px] truncate">{{ profile.displayName || '訪客' }}</span>
+                <!-- 顯示登入者資訊 (加入載入中狀態) -->
+                <div class="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100 min-h-[32px]">
+                    <!-- 如果還在登入 LIFF，顯示轉圈圈 -->
+                    <div v-if="isLoggingIn" class="flex items-center px-1">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
+                        <span>載入中...</span>
+                    </div>
+                    <!-- 登入完成顯示頭像 -->
+                    <div v-else class="flex items-center animate-fade-in">
+                        <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 rounded-full mr-2 object-cover border border-gray-200">
+                        <span class="max-w-[80px] truncate">{{ profile.displayName || '訪客' }}</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- 商店形象圖 -->
         <div class="relative h-44 bg-gray-300 overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800&h=400" class="w-full h-full object-cover">
+            <!-- 加上 loading="eager" 讓大圖優先載入 -->
+            <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800&h=400" class="w-full h-full object-cover" loading="eager">
             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
                 <div class="flex items-end justify-between text-white">
                     <div>
@@ -152,24 +155,15 @@
             </div>
             
             <div v-for="item in menu" :key="item.id" class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 transition-all hover:shadow-md">
-                <!-- 圖片區塊 -->
                 <div class="w-24 h-24 rounded-lg bg-gray-100 overflow-hidden shrink-0 relative">
-                    <img 
-                        :src="item.image" 
-                        @error="handleImageError"
-                        class="w-full h-full object-cover" 
-                        loading="lazy" 
-                    >
+                    <img :src="item.image" @error="handleImageError" class="w-full h-full object-cover" loading="lazy">
                 </div>
-
-                <!-- 資訊區塊 -->
                 <div class="flex-1 flex flex-col justify-between py-0.5">
                     <div>
                         <h3 class="font-bold text-gray-800 text-[15px] leading-tight mb-1">{{ item.name }}</h3>
                         <span class="inline-block text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ item.category }}</span>
                     </div>
                     
-                    <!-- 多選項控制區 (便當類顯示 80/70 元選項) -->
                     <div v-if="item.options" class="mt-2 space-y-2">
                         <div v-for="opt in item.options" :key="opt.id" class="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg border border-gray-100">
                             <span class="text-sm font-bold text-gray-700 ml-1">{{ opt.label }} <span class="text-gray-500 font-normal text-xs">/ ${{ opt.price }}</span></span>
@@ -185,7 +179,6 @@
                         </div>
                     </div>
 
-                    <!-- 單一價格控制區 (湯品甜點類) -->
                     <div v-else class="flex justify-between items-end mt-2">
                         <span class="text-lg font-bold text-gray-900">${{ item.price }}</span>
                         <div class="flex items-center bg-gray-50 rounded-lg p-1">
@@ -204,20 +197,17 @@
 
         <!-- 步驟 2: 結帳表單 -->
         <div v-if="step === 2" class="p-4 space-y-4 animate-fade-in">
-            <!-- 返回按鈕 -->
             <button @click="step = 1" class="text-sm text-gray-500 flex items-center mb-2 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 返回修改餐點
             </button>
 
-            <!-- 訂單摘要 -->
             <div class="bg-white rounded-xl p-5 shadow-sm border border-green-50">
                 <h3 class="font-bold text-gray-800 border-b border-gray-100 pb-3 mb-3 flex justify-between items-center">
                     訂單內容
                     <span class="text-xs font-normal text-gray-400 bg-gray-50 px-2 py-1 rounded">共 {{ totalQty }} 項</span>
                 </h3>
                 <div class="space-y-2 max-h-[200px] overflow-y-auto hide-scrollbar">
-                    <!-- 使用 getProductInfo 取得正確的名稱 (包含選項) 與價格 -->
                     <div v-for="(qty, id) in cart" :key="id" class="flex justify-between text-sm py-1">
                         <div class="flex items-center">
                             <span class="w-5 h-5 flex items-center justify-center bg-gray-100 text-gray-600 text-[10px] rounded mr-2">{{ qty }}</span>
@@ -232,7 +222,6 @@
                 </div>
             </div>
 
-            <!-- 填寫資料表單 -->
             <form @submit.prevent="submitOrder" class="bg-white rounded-xl p-5 shadow-sm space-y-4">
                 <div class="flex items-center mb-2">
                     <span class="w-1 h-5 bg-[#06C755] mr-2 rounded-full"></span>
@@ -253,7 +242,6 @@
                         <input v-model="form.address" type="text" required placeholder="請輸入完整地址" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
                     </div>
                     
-                    <!-- 時間下拉選單 -->
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">預計取餐時間 (10:30 - 12:30) <span class="text-red-500">*</span></label>
                         <div class="relative">
@@ -269,14 +257,13 @@
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">備註 (選填)</label>
-                        <!-- 修改處：將 rows="2" 改為 rows="5"，增加高度 -->
                         <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="5" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
                     </div>
                 </div>
             </form>
         </div>
 
-        <!-- 步驟 3: 成功畫面 (包含核對資訊) -->
+        <!-- 步驟 3: 成功畫面 -->
         <div v-if="step === 3" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in overflow-y-auto">
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-sm shrink-0">
                 <svg class="w-10 h-10 text-[#06C755]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
@@ -284,7 +271,6 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-2">訂單已送出！</h2>
             <p class="text-gray-500 mb-6 text-sm">感謝您的訂購，千葉素食便當將盡快為您準備餐點。</p>
             
-            <!-- 訂單核對資訊卡片 -->
             <div class="bg-gray-50 rounded-xl p-4 w-full max-w-sm border border-gray-100 mb-6 text-left shadow-sm">
                 <h3 class="text-[#06C755] font-bold border-b border-gray-200 pb-2 mb-3 flex items-center text-sm">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -315,7 +301,6 @@
             </div>
         </div>
 
-        <!-- 底部結帳按鈕 (只在步驟1顯示) -->
         <div v-if="step === 1 && totalQty > 0" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
             <div class="flex justify-between items-center mb-2 px-1">
                 <span class="text-sm font-medium text-gray-500">已選 <strong class="text-[#06C755]">{{ totalQty }}</strong> 項</span>
@@ -326,7 +311,6 @@
             </button>
         </div>
 
-        <!-- 底部提交按鈕 (只在步驟2顯示) -->
         <div v-if="step === 2" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
             <div class="text-center mb-2 text-xs text-gray-400">確認無誤後請按下送出</div>
             <button @click="submitOrder" class="w-full bg-[#06C755] text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-green-200 active:scale-[0.98] transition-all">
@@ -347,14 +331,17 @@
         createApp({
             setup() {
                 const step = ref(1);
+                // 修改邏輯：isLoading 預設為 true，但在 mounted 後會透過 checkStoreStatus 快速解除
                 const isLoading = ref(true);
                 const loadingText = ref('正在載入菜單...');
+                // 新增：LIFF 登入狀態 (不影響主畫面載入)
+                const isLoggingIn = ref(true); 
+                
                 const cart = ref({});
-                const profile = ref({ displayName: '', pictureUrl: '' });
+                const profile = ref({ displayName: '訪客', pictureUrl: '' });
                 const timeOptions = ref([]);
                 const shopStatus = ref('open');
                 
-                // 新增：歷史訂單狀態
                 const showHistory = ref(false);
                 const orderHistory = ref([]);
 
@@ -366,9 +353,8 @@
                     remark: ''
                 });
 
-                // 時間選單 (10:30 開始)
                 const generateTimeOptions = () => {
-                    let h = 10, m = 30; // 10:30 開始
+                    let h = 10, m = 30;
                     const endH = 12, endM = 30;
                     const options = [];
                     while (true) {
@@ -381,16 +367,19 @@
                 };
                 generateTimeOptions();
 
-                // 檢查 Google Sheet 營業狀態
+                // 檢查 Google Sheet 營業狀態 (這是最重要的檢查，完成後就讓使用者看菜單)
                 const checkStoreStatus = async () => {
                     try {
                         const res = await fetch(CONFIG.API_URL);
                         const data = await res.json();
                         if (data.status) shopStatus.value = data.status;
                     } catch (e) { console.error('檢查狀態失敗', e); }
+                    finally {
+                        // 關鍵修改：不論 LIFF 是否完成，狀態檢查完就關閉遮罩
+                        isLoading.value = false;
+                    }
                 };
 
-                // 讀取歷史訂單
                 const loadHistory = () => {
                     const saved = localStorage.getItem('chiba_order_history');
                     if (saved) {
@@ -398,7 +387,6 @@
                     }
                 };
                 
-                // 儲存訂單到歷史紀錄
                 const saveToHistory = (orderData) => {
                     const now = new Date();
                     const newRecord = {
@@ -408,12 +396,8 @@
                         totalPrice: orderData.totalPrice,
                         timestamp: now.getTime()
                     };
-                    
-                    // 新的紀錄放在最前面
                     const updatedHistory = [newRecord, ...orderHistory.value];
-                    // 只保留最近 20 筆
                     if (updatedHistory.length > 20) updatedHistory.pop();
-                    
                     orderHistory.value = updatedHistory;
                     localStorage.setItem('chiba_order_history', JSON.stringify(updatedHistory));
                 };
@@ -425,9 +409,7 @@
                     }
                 };
 
-                // 產品搜尋 (支援主項目與子選項)
                 const getProductInfo = (id) => {
-                    // 如果 ID 是字串且包含底線 (例如 '1_80')，代表是子選項
                     if (String(id).includes('_')) {
                         const [parentId, suffix] = String(id).split('_');
                         const parent = menu.value.find(i => i.id == parentId);
@@ -436,12 +418,10 @@
                             if (option) return { name: `${parent.name} (${option.label})`, price: option.price };
                         }
                     }
-                    // 一般商品
                     const item = menu.value.find(i => i.id == id);
                     return item ? { name: item.name, price: item.price } : { name: '未知商品', price: 0 };
                 };
 
-                // 菜單資料
                 const menu = ref([
                     { 
                         id: 1, name: "白飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_白飯便當_1.jpg",
@@ -471,35 +451,41 @@
                         id: 7, name: "碗粿便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_碗粿便當_1.jpg",
                         options: [{ id: '7_80', label: '80元', price: 80 }, { id: '7_70', label: '70元', price: 70 }] 
                     },
-                    // 下方為單一價格商品
                     { id: 8, name: "冰糖白木耳", price: 30, category: "甜點", image: "https://baconlim.github.io/order-system/千草木素食便當_冰糖白木耳.jpg" },
                     { id: 9, name: "麻辣豆腐湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_麻辣豆腐湯_1.jpg" },
                     { id: 10, name: "當歸湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_當歸湯.jpg" },
                     { id: 11, name: "味噌湯", price: 30, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_味噌湯.jpg" },
-                    // 新增特製餐點欄位
                     { id: 12, name: "特製餐點(填選後，進入備註欄填寫內容)", price: 0, category: "特製", image: "https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&q=80&w=300" }
                 ]);
 
                 const handleImageError = (e) => { e.target.src = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=300"; };
 
+                // 初始化 LIFF (背景執行，不阻塞主畫面)
                 const initLiff = async () => {
                     try {
                         await liff.init({ liffId: CONFIG.LIFF_ID });
-                        if (liff.isLoggedIn()) profile.value = await liff.getProfile();
-                        else profile.value = { displayName: '訪客', pictureUrl: '' };
-                    } catch (err) { profile.value = { displayName: '訪客', pictureUrl: '' }; } 
-                    finally { isLoading.value = false; }
+                        if (liff.isLoggedIn()) {
+                            profile.value = await liff.getProfile();
+                        } else {
+                            // 保持訪客預設值
+                        }
+                    } catch (err) {
+                        console.error('LIFF 初始化失敗', err);
+                    } finally {
+                        // LIFF 載入完成，將右上角狀態切換
+                        isLoggingIn.value = false;
+                    }
                 };
 
                 onMounted(() => {
-                    initLiff();
-                    checkStoreStatus();
-                    loadHistory(); // 載入歷史紀錄
+                    // 平行處理：同時開始「檢查商店狀態」與「LIFF 登入」
+                    checkStoreStatus(); // 這個決定何時關閉大遮罩
+                    initLiff();         // 這個在背景慢慢跑，好了會更新右上角
+                    loadHistory();
                 });
 
                 const totalQty = computed(() => Object.values(cart.value).reduce((a, b) => a + b, 0));
                 
-                // 修改：使用 getProductInfo 計算總金額
                 const totalPrice = computed(() => {
                     return Object.entries(cart.value).reduce((t, [id, q]) => {
                         const product = getProductInfo(id);
@@ -507,7 +493,7 @@
                     }, 0);
                 });
 
-                const getMenuItem = (id) => menu.value.find(i => i.id == id); // 供內部使用
+                const getMenuItem = (id) => menu.value.find(i => i.id == id);
 
                 const updateCart = (id, d) => { const n = Math.max(0, (cart.value[id] || 0) + d); n === 0 ? delete cart.value[id] : cart.value[id] = n; };
                 const resetForm = () => { cart.value = {}; step.value = 1; form.value.remark = ''; };
@@ -515,8 +501,17 @@
 
                 const submitOrder = async () => {
                     if (!form.value.unit || !form.value.phone || !form.value.address || !form.value.time) return alert('請填寫所有必填欄位 (*) 喔！');
+                    
+                    // 若 LIFF 還在載入，稍微擋一下，或直接用訪客身分送出 (這裡選擇稍微提醒)
+                    if (isLoggingIn.value) {
+                         // 其實也可以不擋，直接送出，後端會收到「訪客」
+                         // 但為了確保名字正確，這裡稍微顯示不同的載入文字
+                         loadingText.value = '正在確認身分並傳送...';
+                    } else {
+                        loadingText.value = '正在傳送訂單...';
+                    }
+                    
                     isLoading.value = true;
-                    loadingText.value = '正在傳送訂單...';
                     
                     const payload = {
                         ...form.value,
@@ -530,10 +525,7 @@
 
                     try {
                         await fetch(CONFIG.API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-                        
-                        // 成功後儲存紀錄
                         saveToHistory(payload);
-
                         setTimeout(() => { step.value = 3; isLoading.value = false; }, 800);
                     } catch (err) { alert('網路連線似乎有問題'); isLoading.value = false; }
                 };
@@ -542,7 +534,8 @@
                     step, isLoading, loadingText, cart, profile, form, menu, 
                     totalQty, totalPrice, updateCart, submitOrder, closeLiff, 
                     resetForm, handleImageError, timeOptions, shopStatus,
-                    getProductInfo, showHistory, orderHistory, clearHistory // 匯出歷史紀錄相關變數
+                    getProductInfo, showHistory, orderHistory, clearHistory,
+                    isLoggingIn // 匯出以控制右上角顯示
                 };
             }
         }).mount('#app');
