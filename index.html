@@ -23,6 +23,9 @@
         /* 修正 iOS 上 select 的預設樣式 */
         select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
         [v-cloak] { display: none; }
+        /* 歷史紀錄滑入動畫 */
+        .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body class="bg-gray-100 pb-24 text-gray-800">
@@ -30,10 +33,8 @@
     <div id="app" v-cloak>
         
         <!-- 【全站狀態擋板 1：暫停外送 (stop)】 -->
-        <!-- 適用情境：店裡忙不過來，但現場還能買 -->
         <div v-if="shopStatus === 'stop'" class="fixed inset-0 z-[60] bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
-                <!-- 黃色暫停圖示 -->
                 <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <h2 class="text-3xl font-bold mb-4">暫停外送</h2>
@@ -45,10 +46,8 @@
         </div>
 
         <!-- 【全站狀態擋板 2：本日公休 (closed)】 -->
-        <!-- 適用情境：完全不營業 -->
         <div v-if="shopStatus === 'closed'" class="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-red-900/30 rounded-full flex items-center justify-center mb-6">
-                <!-- 紅色禁止圖示 -->
                 <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
             </div>
             <h2 class="text-3xl font-bold mb-4">本日公休</h2>
@@ -65,13 +64,67 @@
             <p class="text-gray-600 font-medium">{{ loadingText }}</p>
         </div>
 
+        <!-- 【歷史訂單側邊欄】(新增功能) -->
+        <div v-if="showHistory" class="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm transition-opacity" @click.self="showHistory = false">
+            <div class="absolute right-0 top-0 bottom-0 w-4/5 max-w-md bg-white shadow-2xl slide-in-right flex flex-col">
+                <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                    <h2 class="font-bold text-lg text-gray-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-[#06C755]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        訂單紀錄
+                    </h2>
+                    <button @click="showHistory = false" class="text-gray-400 hover:text-gray-600 p-1">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+                    <div v-if="orderHistory.length === 0" class="text-center text-gray-400 mt-10">
+                        <p>目前沒有訂單紀錄</p>
+                    </div>
+                    
+                    <div v-for="(order, index) in orderHistory" :key="index" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-start mb-2 border-b border-gray-50 pb-2">
+                            <span class="text-xs font-bold text-gray-500">{{ order.submitTime }}</span>
+                            <span class="text-sm font-bold text-[#06C755]">${{ order.totalPrice }}</span>
+                        </div>
+                        <div class="space-y-1 mb-2">
+                            <div v-for="(item, idx) in order.items" :key="idx" class="text-sm text-gray-700 flex justify-between">
+                                <span>{{ item.name }}</span>
+                                <span class="text-gray-400 text-xs">x{{ item.qty }}</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-400 mt-2 pt-2 border-t border-dashed border-gray-100">
+                            <span>取餐：{{ order.pickupTime }}</span>
+                            <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">已送出</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-gray-100 bg-white">
+                    <button @click="clearHistory" class="w-full text-xs text-gray-400 hover:text-red-500 text-center py-2 transition-colors">
+                        清除所有紀錄
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 頂部導航 -->
         <div class="bg-white sticky top-0 z-10 shadow-sm px-4 py-3 flex justify-between items-center">
             <h1 class="text-lg font-bold text-gray-800 tracking-wide">千葉素食便當</h1>
-            <!-- 顯示登入者資訊 -->
-            <div class="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
-                <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 rounded-full mr-2 object-cover border border-gray-200">
-                <span class="max-w-[80px] truncate">{{ profile.displayName || '訪客' }}</span>
+            
+            <div class="flex items-center gap-2">
+                <!-- 歷史訂單按鈕 (樣式調整：增加 bg-gray-100 與 padding，使其在無訂單時也明顯可見) -->
+                <button @click="showHistory = true" class="p-2 mr-1 text-gray-600 bg-gray-100 hover:bg-gray-200 hover:text-[#06C755] rounded-full transition-colors relative">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <!-- 紅點提示 (僅在有資料時顯示) -->
+                    <span v-if="orderHistory.length > 0" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+
+                <!-- 顯示登入者資訊 -->
+                <div class="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                    <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 rounded-full mr-2 object-cover border border-gray-200">
+                    <span class="max-w-[80px] truncate">{{ profile.displayName || '訪客' }}</span>
+                </div>
             </div>
         </div>
 
@@ -216,7 +269,8 @@
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">備註 (選填)</label>
-                        <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
+                        <!-- 修改處：將 rows="2" 改為 rows="5"，增加高度 -->
+                        <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="5" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
                     </div>
                 </div>
             </form>
@@ -300,6 +354,10 @@
                 const timeOptions = ref([]);
                 const shopStatus = ref('open');
                 
+                // 新增：歷史訂單狀態
+                const showHistory = ref(false);
+                const orderHistory = ref([]);
+
                 const form = ref({
                     unit: '',
                     phone: '',
@@ -330,6 +388,41 @@
                         const data = await res.json();
                         if (data.status) shopStatus.value = data.status;
                     } catch (e) { console.error('檢查狀態失敗', e); }
+                };
+
+                // 讀取歷史訂單
+                const loadHistory = () => {
+                    const saved = localStorage.getItem('chiba_order_history');
+                    if (saved) {
+                        orderHistory.value = JSON.parse(saved);
+                    }
+                };
+                
+                // 儲存訂單到歷史紀錄
+                const saveToHistory = (orderData) => {
+                    const now = new Date();
+                    const newRecord = {
+                        submitTime: `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`,
+                        pickupTime: orderData.time,
+                        items: orderData.items,
+                        totalPrice: orderData.totalPrice,
+                        timestamp: now.getTime()
+                    };
+                    
+                    // 新的紀錄放在最前面
+                    const updatedHistory = [newRecord, ...orderHistory.value];
+                    // 只保留最近 20 筆
+                    if (updatedHistory.length > 20) updatedHistory.pop();
+                    
+                    orderHistory.value = updatedHistory;
+                    localStorage.setItem('chiba_order_history', JSON.stringify(updatedHistory));
+                };
+
+                const clearHistory = () => {
+                    if(confirm('確定要清除所有紀錄嗎？')) {
+                        orderHistory.value = [];
+                        localStorage.removeItem('chiba_order_history');
+                    }
                 };
 
                 // 產品搜尋 (支援主項目與子選項)
@@ -401,6 +494,7 @@
                 onMounted(() => {
                     initLiff();
                     checkStoreStatus();
+                    loadHistory(); // 載入歷史紀錄
                 });
 
                 const totalQty = computed(() => Object.values(cart.value).reduce((a, b) => a + b, 0));
@@ -436,6 +530,10 @@
 
                     try {
                         await fetch(CONFIG.API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
+                        
+                        // 成功後儲存紀錄
+                        saveToHistory(payload);
+
                         setTimeout(() => { step.value = 3; isLoading.value = false; }, 800);
                     } catch (err) { alert('網路連線似乎有問題'); isLoading.value = false; }
                 };
@@ -444,7 +542,7 @@
                     step, isLoading, loadingText, cart, profile, form, menu, 
                     totalQty, totalPrice, updateCart, submitOrder, closeLiff, 
                     resetForm, handleImageError, timeOptions, shopStatus,
-                    getProductInfo // 匯出給 template 使用
+                    getProductInfo, showHistory, orderHistory, clearHistory // 匯出歷史紀錄相關變數
                 };
             }
         }).mount('#app');
