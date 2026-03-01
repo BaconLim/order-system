@@ -27,7 +27,7 @@
 
     <div id="app" v-cloak>
         
-        <!-- 全站狀態擋板 -->
+        <!-- 全站狀態擋板 (停止外送) -->
         <div v-if="shopStatus === 'stop'" class="fixed inset-0 z-[60] bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -40,6 +40,7 @@
             </div>
         </div>
 
+        <!-- 全站狀態擋板 (本日公休) -->
         <div v-if="shopStatus === 'closed'" class="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-red-900/30 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
@@ -254,16 +255,19 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-2">訂單已送出！</h2>
             <p class="text-gray-500 mb-6 text-sm">感謝您的訂購，千葉素食便當將盡快為您準備餐點。</p>
             
-            <!-- 🚀 飲料杯蓋笑話區塊 (有收到笑話才會顯示) -->
-            <div v-if="dailyJoke" class="bg-yellow-50/80 border border-yellow-200 rounded-xl p-4 w-full max-w-sm mb-6 text-left shadow-sm relative overflow-hidden">
-                <div class="absolute -right-2 -top-2 text-5xl opacity-20">😄</div>
-                <h3 class="text-yellow-700 font-bold text-sm mb-2 flex items-center">
+            <!-- 🚀 飲料杯蓋笑話區塊 (動態高度、溢出修復) -->
+            <div class="bg-yellow-50/95 border border-yellow-200 rounded-2xl p-5 w-full max-w-sm mb-6 text-left shadow-md relative h-auto overflow-visible">
+                <div class="absolute -right-2 -top-2 text-4xl opacity-30 rotate-12">🥗</div>
+                <h3 class="text-yellow-700 font-bold text-sm mb-2 flex items-center border-b border-yellow-100 pb-2">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     便當蓋笑話
                 </h3>
-                <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-line font-medium">{{ dailyJoke }}</p>
+                <p class="text-[15px] text-gray-800 leading-relaxed whitespace-pre-line font-medium italic h-auto pb-4">
+                    {{ dailyJoke || "雖然沒有笑話，但千葉祝您用餐愉快！" }}
+                </p>
             </div>
 
+            <!-- 訂單明細卡片 -->
             <div class="bg-gray-50 rounded-xl p-4 w-full max-w-sm border border-gray-100 mb-6 text-left shadow-sm">
                 <h3 class="text-[#06C755] font-bold border-b border-gray-200 pb-2 mb-3 flex items-center text-sm">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -282,6 +286,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 控制按鈕 -->
             <div class="w-full max-w-xs space-y-3 shrink-0">
                 <button @click="closeLiff" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-green-200 transition-all">
                     關閉視窗
@@ -292,6 +298,7 @@
             </div>
         </div>
 
+        <!-- 底部結帳列 (步驟 1) -->
         <div v-if="step === 1 && totalQty > 0" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
             <div class="flex justify-between items-center mb-2 px-1">
                 <span class="text-sm font-medium text-gray-500">已選 <strong class="text-[#06C755]">{{ totalQty }}</strong> 項</span>
@@ -302,6 +309,7 @@
             </button>
         </div>
 
+        <!-- 底部結帳列 (步驟 2) -->
         <div v-if="step === 2" class="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 pb-safe">
             <div class="text-center mb-2 text-xs text-gray-400">確認無誤後請按下送出</div>
             <button @click="submitOrder" class="w-full bg-[#06C755] text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-green-200 active:scale-[0.98] transition-all">
@@ -333,8 +341,6 @@
                 
                 const showHistory = ref(false);
                 const orderHistory = ref([]);
-                
-                // 乾淨的初始狀態，預設為空字串
                 const dailyJoke = ref(""); 
 
                 const form = ref({
@@ -486,6 +492,7 @@
                         try {
                             loadingText.value = retries === 3 ? baseLoadingText : `網路連線微弱，正在重新連線... (${4-retries}/3)`;
                             
+                            // 🚀 關鍵：不使用 no-cors，才能讀取後端回傳的 JSON
                             const response = await fetch(CONFIG.API_URL, { 
                                 method: 'POST', 
                                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -497,9 +504,11 @@
                             if (result.status === "success") {
                                 isSuccess = true;
                                 
-                                // 乾淨地接收笑話，沒有收到就保持空白
+                                // 🚀 接收並儲存笑話
                                 if (result.joke && result.joke.trim() !== "") {
                                     dailyJoke.value = result.joke;
+                                } else {
+                                    dailyJoke.value = "雖然沒有笑話，但千葉祝您用餐愉快！";
                                 }
 
                                 saveToHistory(payload);
@@ -509,7 +518,7 @@
                             }
                             
                         } catch (err) {
-                            console.error(`第 ${4-retries} 次傳送失敗:`, err);
+                            console.error(`傳送嘗試失敗:`, err);
                             retries--;
                             
                             if (retries === 0) {
