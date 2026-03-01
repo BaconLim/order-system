@@ -247,12 +247,23 @@
         </div>
 
         <!-- 步驟 3: 成功畫面 -->
-        <div v-if="step === 3" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in overflow-y-auto">
+        <div v-if="step === 3" class="fixed inset-0 bg-white z-50 flex flex-col items-center p-6 text-center animate-fade-in overflow-y-auto pt-12 pb-24">
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-sm shrink-0">
                 <svg class="w-10 h-10 text-[#06C755]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">訂單已送出！</h2>
             <p class="text-gray-500 mb-6 text-sm">感謝您的訂購，千葉素食便當將盡快為您準備餐點。</p>
+            
+            <!-- 🚀 飲料杯蓋笑話區塊 (有收到笑話才會顯示) -->
+            <div v-if="dailyJoke" class="bg-yellow-50/80 border border-yellow-200 rounded-xl p-4 w-full max-w-sm mb-6 text-left shadow-sm relative overflow-hidden">
+                <div class="absolute -right-2 -top-2 text-5xl opacity-20">😄</div>
+                <h3 class="text-yellow-700 font-bold text-sm mb-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    便當蓋笑話
+                </h3>
+                <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-line font-medium">{{ dailyJoke }}</p>
+            </div>
+
             <div class="bg-gray-50 rounded-xl p-4 w-full max-w-sm border border-gray-100 mb-6 text-left shadow-sm">
                 <h3 class="text-[#06C755] font-bold border-b border-gray-200 pb-2 mb-3 flex items-center text-sm">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -322,6 +333,9 @@
                 
                 const showHistory = ref(false);
                 const orderHistory = ref([]);
+                
+                // 乾淨的初始狀態，預設為空字串
+                const dailyJoke = ref(""); 
 
                 const form = ref({
                     unit: '',
@@ -351,12 +365,16 @@
                         const data = await res.json();
                         if (data.status) shopStatus.value = data.status;
                     } catch (e) { console.error('檢查狀態失敗', e); }
-                    finally { isLoading.value = false; }
+                    finally {
+                        isLoading.value = false;
+                    }
                 };
 
                 const loadHistory = () => {
                     const saved = localStorage.getItem('chiba_order_history');
-                    if (saved) orderHistory.value = JSON.parse(saved);
+                    if (saved) {
+                        orderHistory.value = JSON.parse(saved);
+                    }
                 };
                 
                 const saveToHistory = (orderData) => {
@@ -414,9 +432,14 @@
                 const initLiff = async () => {
                     try {
                         await liff.init({ liffId: CONFIG.LIFF_ID });
-                        if (liff.isLoggedIn()) profile.value = await liff.getProfile();
-                    } catch (err) { console.error('LIFF 初始化失敗', err); } 
-                    finally { isLoggingIn.value = false; }
+                        if (liff.isLoggedIn()) {
+                            profile.value = await liff.getProfile();
+                        }
+                    } catch (err) {
+                        console.error('LIFF 初始化失敗', err);
+                    } finally {
+                        isLoggingIn.value = false;
+                    }
                 };
 
                 onMounted(() => {
@@ -426,6 +449,7 @@
                 });
 
                 const totalQty = computed(() => Object.values(cart.value).reduce((a, b) => a + b, 0));
+                
                 const totalPrice = computed(() => {
                     return Object.entries(cart.value).reduce((t, [id, q]) => {
                         const product = getProductInfo(id);
@@ -433,15 +457,17 @@
                     }, 0);
                 });
 
+                const getMenuItem = (id) => menu.value.find(i => i.id == id);
+
                 const updateCart = (id, d) => { const n = Math.max(0, (cart.value[id] || 0) + d); n === 0 ? delete cart.value[id] : cart.value[id] = n; };
                 const resetForm = () => { cart.value = {}; step.value = 1; form.value.remark = ''; };
                 const closeLiff = () => liff.isInClient() ? liff.closeWindow() : alert('請直接關閉視窗');
 
-                // 🚀 重點優化：拔除 no-cors 並加入重試邏輯
                 const submitOrder = async () => {
                     if (!form.value.unit || !form.value.phone || !form.value.address || !form.value.time) return alert('請填寫所有必填欄位 (*) 喔！');
                     
                     isLoading.value = true;
+                    
                     const payload = {
                         ...form.value,
                         name: profile.value.displayName || '訪客',
@@ -454,13 +480,12 @@
 
                     let retries = 3;
                     let isSuccess = false;
-                    let currentLoadingText = isLoggingIn.value ? '正在確認身分並傳送...' : '正在為您處理訂單...';
+                    let baseLoadingText = isLoggingIn.value ? '正在確認身分並傳送...' : '正在為您處理訂單...';
 
                     while (retries > 0 && !isSuccess) {
                         try {
-                            loadingText.value = retries === 3 ? currentLoadingText : `網路不給力，重試中... (${4-retries}/3)`;
+                            loadingText.value = retries === 3 ? baseLoadingText : `網路連線微弱，正在重新連線... (${4-retries}/3)`;
                             
-                            // 🚀 修改：移除 no-cors，改用純文字傳輸 JSON 以讀取回傳結果
                             const response = await fetch(CONFIG.API_URL, { 
                                 method: 'POST', 
                                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
@@ -471,17 +496,25 @@
 
                             if (result.status === "success") {
                                 isSuccess = true;
+                                
+                                // 乾淨地接收笑話，沒有收到就保持空白
+                                if (result.joke && result.joke.trim() !== "") {
+                                    dailyJoke.value = result.joke;
+                                }
+
                                 saveToHistory(payload);
                                 setTimeout(() => { step.value = 3; isLoading.value = false; }, 500);
                             } else {
                                 throw new Error(result.message || "系統回報異常");
                             }
+                            
                         } catch (err) {
-                            console.error(`傳送嘗試失敗:`, err);
+                            console.error(`第 ${4-retries} 次傳送失敗:`, err);
                             retries--;
+                            
                             if (retries === 0) {
                                 isLoading.value = false;
-                                alert('⚠️ 訂單傳送失敗！\n\n伺服器可能正在忙碌或網路極度不穩。為了確保您的用餐，請「直接來電訂購」，造成不便請見諒！');
+                                alert('⚠️ 嚴重錯誤：訂單傳送失敗！\n\n系統目前可能處於維護中或您的網路極度不穩。為了避免延誤您的用餐，請您「直接來電訂購」，非常抱歉造成您的困擾！');
                                 return;
                             }
                             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -490,9 +523,11 @@
                 };
 
                 return { 
-                    step, isLoading, loadingText, cart, profile, form, menu, totalQty, totalPrice, 
-                    updateCart, submitOrder, closeLiff, resetForm, handleImageError, timeOptions, 
-                    shopStatus, getProductInfo, showHistory, orderHistory, clearHistory, isLoggingIn
+                    step, isLoading, loadingText, cart, profile, form, menu, 
+                    totalQty, totalPrice, updateCart, submitOrder, closeLiff, 
+                    resetForm, handleImageError, timeOptions, shopStatus,
+                    getProductInfo, showHistory, orderHistory, clearHistory,
+                    isLoggingIn, dailyJoke 
                 };
             }
         }).mount('#app');
