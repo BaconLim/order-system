@@ -19,7 +19,6 @@
         [v-cloak] { display: none; }
         .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        /* 增加淡入動畫 */
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -28,7 +27,7 @@
 
     <div id="app" v-cloak>
         
-        <!-- 狀態擋板邏輯保持不變 -->
+        <!-- 全站狀態擋板 -->
         <div v-if="shopStatus === 'stop'" class="fixed inset-0 z-[60] bg-gray-900/95 flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in">
             <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -54,10 +53,9 @@
         </div>
 
         <!-- 載入中遮罩 -->
-        <!-- 修改邏輯：這裡只在初始載入的一瞬間顯示，不再等待 LIFF -->
         <div v-if="isLoading" class="loading-overlay">
             <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-[#06C755] mb-4"></div>
-            <p class="text-gray-600 font-medium">{{ loadingText }}</p>
+            <p class="text-gray-600 font-medium whitespace-pre-line text-center px-4 leading-relaxed">{{ loadingText }}</p>
         </div>
 
         <!-- 歷史訂單側邊欄 -->
@@ -72,12 +70,10 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
-                
                 <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
                     <div v-if="orderHistory.length === 0" class="text-center text-gray-400 mt-10">
                         <p>目前沒有訂單紀錄</p>
                     </div>
-                    
                     <div v-for="(order, index) in orderHistory" :key="index" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <div class="flex justify-between items-start mb-2 border-b border-gray-50 pb-2">
                             <span class="text-xs font-bold text-gray-500">{{ order.submitTime }}</span>
@@ -95,7 +91,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="p-4 border-t border-gray-100 bg-white">
                     <button @click="clearHistory" class="w-full text-xs text-gray-400 hover:text-red-500 text-center py-2 transition-colors">
                         清除所有紀錄
@@ -107,21 +102,16 @@
         <!-- 頂部導航 -->
         <div class="bg-white sticky top-0 z-10 shadow-sm px-4 py-3 flex justify-between items-center">
             <h1 class="text-lg font-bold text-gray-800 tracking-wide">千葉素食便當</h1>
-            
             <div class="flex items-center gap-2">
                 <button @click="showHistory = true" class="p-2 mr-1 text-gray-600 bg-gray-100 hover:bg-gray-200 hover:text-[#06C755] rounded-full transition-colors relative">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span v-if="orderHistory.length > 0" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                 </button>
-
-                <!-- 顯示登入者資訊 (加入載入中狀態) -->
                 <div class="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full border border-gray-100 min-h-[32px]">
-                    <!-- 如果還在登入 LIFF，顯示轉圈圈 -->
                     <div v-if="isLoggingIn" class="flex items-center px-1">
                         <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
                         <span>載入中...</span>
                     </div>
-                    <!-- 登入完成顯示頭像 -->
                     <div v-else class="flex items-center animate-fade-in">
                         <img :src="profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'" class="w-5 h-5 rounded-full mr-2 object-cover border border-gray-200">
                         <span class="max-w-[80px] truncate">{{ profile.displayName || '訪客' }}</span>
@@ -132,7 +122,6 @@
 
         <!-- 商店形象圖 -->
         <div class="relative h-44 bg-gray-300 overflow-hidden">
-            <!-- 加上 loading="eager" 讓大圖優先載入 -->
             <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800&h=400" class="w-full h-full object-cover" loading="eager">
             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
                 <div class="flex items-end justify-between text-white">
@@ -153,7 +142,6 @@
                 <h2 class="font-bold text-lg text-gray-800">美味菜單</h2>
                 <span class="text-xs text-gray-500">點擊 + 加入購物車</span>
             </div>
-            
             <div v-for="item in menu" :key="item.id" class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 transition-all hover:shadow-md">
                 <div class="w-24 h-24 rounded-lg bg-gray-100 overflow-hidden shrink-0 relative">
                     <img :src="item.image" @error="handleImageError" class="w-full h-full object-cover" loading="lazy">
@@ -163,7 +151,6 @@
                         <h3 class="font-bold text-gray-800 text-[15px] leading-tight mb-1">{{ item.name }}</h3>
                         <span class="inline-block text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ item.category }}</span>
                     </div>
-                    
                     <div v-if="item.options" class="mt-2 space-y-2">
                         <div v-for="opt in item.options" :key="opt.id" class="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg border border-gray-100">
                             <span class="text-sm font-bold text-gray-700 ml-1">{{ opt.label }} <span class="text-gray-500 font-normal text-xs">/ ${{ opt.price }}</span></span>
@@ -178,7 +165,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div v-else class="flex justify-between items-end mt-2">
                         <span class="text-lg font-bold text-gray-900">${{ item.price }}</span>
                         <div class="flex items-center bg-gray-50 rounded-lg p-1">
@@ -227,7 +213,6 @@
                     <span class="w-1 h-5 bg-[#06C755] mr-2 rounded-full"></span>
                     <h3 class="font-bold text-gray-800">外送資訊</h3>
                 </div>
-                
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">單位 / 公司名稱 <span class="text-red-500">*</span></label>
@@ -241,7 +226,6 @@
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">外送地址 <span class="text-red-500">*</span></label>
                         <input v-model="form.address" type="text" required placeholder="請輸入完整地址" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm">
                     </div>
-                    
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">預計取餐時間 (10:30 - 12:30) <span class="text-red-500">*</span></label>
                         <div class="relative">
@@ -254,7 +238,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">備註 (選填)</label>
                         <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="5" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
@@ -270,7 +253,6 @@
             </div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">訂單已送出！</h2>
             <p class="text-gray-500 mb-6 text-sm">感謝您的訂購，千葉素食便當將盡快為您準備餐點。</p>
-            
             <div class="bg-gray-50 rounded-xl p-4 w-full max-w-sm border border-gray-100 mb-6 text-left shadow-sm">
                 <h3 class="text-[#06C755] font-bold border-b border-gray-200 pb-2 mb-3 flex items-center text-sm">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -283,14 +265,12 @@
                     <div class="flex justify-between"><span class="text-gray-400">時間：</span> <span class="font-medium text-gray-800">{{ form.time }}</span></div>
                     <div class="flex justify-between items-start"><span class="text-gray-400 shrink-0">地址：</span> <span class="font-medium text-gray-800 text-right break-words">{{ form.address }}</span></div>
                     <div v-if="form.remark" class="flex justify-between items-start"><span class="text-gray-400 shrink-0">備註：</span> <span class="font-medium text-gray-800 text-right break-words">{{ form.remark }}</span></div>
-                    
                     <div class="border-t border-dashed border-gray-300 my-2 pt-2 flex justify-between items-center">
                         <span class="font-bold text-gray-800">訂單總金額</span>
                         <span class="font-bold text-xl text-[#06C755]">${{ totalPrice }}</span>
                     </div>
                 </div>
             </div>
-
             <div class="w-full max-w-xs space-y-3 shrink-0">
                 <button @click="closeLiff" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white py-3.5 rounded-xl font-bold shadow-lg shadow-green-200 transition-all">
                     關閉視窗
@@ -331,10 +311,8 @@
         createApp({
             setup() {
                 const step = ref(1);
-                // 修改邏輯：isLoading 預設為 true，但在 mounted 後會透過 checkStoreStatus 快速解除
                 const isLoading = ref(true);
                 const loadingText = ref('正在載入菜單...');
-                // 新增：LIFF 登入狀態 (不影響主畫面載入)
                 const isLoggingIn = ref(true); 
                 
                 const cart = ref({});
@@ -367,24 +345,18 @@
                 };
                 generateTimeOptions();
 
-                // 檢查 Google Sheet 營業狀態 (這是最重要的檢查，完成後就讓使用者看菜單)
                 const checkStoreStatus = async () => {
                     try {
                         const res = await fetch(CONFIG.API_URL);
                         const data = await res.json();
                         if (data.status) shopStatus.value = data.status;
                     } catch (e) { console.error('檢查狀態失敗', e); }
-                    finally {
-                        // 關鍵修改：不論 LIFF 是否完成，狀態檢查完就關閉遮罩
-                        isLoading.value = false;
-                    }
+                    finally { isLoading.value = false; }
                 };
 
                 const loadHistory = () => {
                     const saved = localStorage.getItem('chiba_order_history');
-                    if (saved) {
-                        orderHistory.value = JSON.parse(saved);
-                    }
+                    if (saved) orderHistory.value = JSON.parse(saved);
                 };
                 
                 const saveToHistory = (orderData) => {
@@ -423,34 +395,13 @@
                 };
 
                 const menu = ref([
-                    { 
-                        id: 1, name: "白飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_白飯便當_1.jpg",
-                        options: [{ id: '1_80', label: '80元', price: 80 }, { id: '1_70', label: '70元', price: 70 }] 
-                    },
-                    { 
-                        id: 2, name: "五穀飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_五穀米便當_1.jpg",
-                        options: [{ id: '2_80', label: '80元', price: 80 }, { id: '2_70', label: '70元', price: 70 }] 
-                    },
-                    { 
-                        id: 3, name: "壽司便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_壽司便當_2.jpg",
-                        options: [{ id: '3_80', label: '80元', price: 80 }, { id: '3_70', label: '70元', price: 70 }] 
-                    },
-                    { 
-                        id: 4, name: "米粉便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_米粉便當_2.jpg",
-                        options: [{ id: '4_80', label: '80元', price: 80 }, { id: '4_70', label: '70元', price: 70 }] 
-                    },
-                    { 
-                        id: 5, name: "炒飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_炒飯便當_1.jpg",
-                        options: [{ id: '5_80', label: '80元', price: 80 }, { id: '5_70', label: '70元', price: 70 }] 
-                    },
-                    { 
-                        id: 6, name: "炒麵便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_炒麵便當_2.jpg",
-                        options: [{ id: '6_80', label: '80元', price: 80 }, { id: '6_70', label: '70元', price: 70 }] 
-                    },
-                    { 
-                        id: 7, name: "碗粿便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_碗粿便當_1.jpg",
-                        options: [{ id: '7_80', label: '80元', price: 80 }, { id: '7_70', label: '70元', price: 70 }] 
-                    },
+                    { id: 1, name: "白飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_白飯便當_1.jpg", options: [{ id: '1_80', label: '80元', price: 80 }, { id: '1_70', label: '70元', price: 70 }] },
+                    { id: 2, name: "五穀飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_五穀米便當_1.jpg", options: [{ id: '2_80', label: '80元', price: 80 }, { id: '2_70', label: '70元', price: 70 }] },
+                    { id: 3, name: "壽司便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_壽司便當_2.jpg", options: [{ id: '3_80', label: '80元', price: 80 }, { id: '3_70', label: '70元', price: 70 }] },
+                    { id: 4, name: "米粉便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_米粉便當_2.jpg", options: [{ id: '4_80', label: '80元', price: 80 }, { id: '4_70', label: '70元', price: 70 }] },
+                    { id: 5, name: "炒飯便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_炒飯便當_1.jpg", options: [{ id: '5_80', label: '80元', price: 80 }, { id: '5_70', label: '70元', price: 70 }] },
+                    { id: 6, name: "炒麵便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_炒麵便當_2.jpg", options: [{ id: '6_80', label: '80元', price: 80 }, { id: '6_70', label: '70元', price: 70 }] },
+                    { id: 7, name: "碗粿便當", category: "便當", image: "https://baconlim.github.io/order-system/千草木素食便當_碗粿便當_1.jpg", options: [{ id: '7_80', label: '80元', price: 80 }, { id: '7_70', label: '70元', price: 70 }] },
                     { id: 8, name: "冰糖白木耳", price: 30, category: "甜點", image: "https://baconlim.github.io/order-system/千草木素食便當_冰糖白木耳.jpg" },
                     { id: 9, name: "麻辣豆腐湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_麻辣豆腐湯_1.jpg" },
                     { id: 10, name: "當歸湯", price: 40, category: "湯品", image: "https://baconlim.github.io/order-system/千草木素食便當_當歸湯.jpg" },
@@ -460,32 +411,21 @@
 
                 const handleImageError = (e) => { e.target.src = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=300"; };
 
-                // 初始化 LIFF (背景執行，不阻塞主畫面)
                 const initLiff = async () => {
                     try {
                         await liff.init({ liffId: CONFIG.LIFF_ID });
-                        if (liff.isLoggedIn()) {
-                            profile.value = await liff.getProfile();
-                        } else {
-                            // 保持訪客預設值
-                        }
-                    } catch (err) {
-                        console.error('LIFF 初始化失敗', err);
-                    } finally {
-                        // LIFF 載入完成，將右上角狀態切換
-                        isLoggingIn.value = false;
-                    }
+                        if (liff.isLoggedIn()) profile.value = await liff.getProfile();
+                    } catch (err) { console.error('LIFF 初始化失敗', err); } 
+                    finally { isLoggingIn.value = false; }
                 };
 
                 onMounted(() => {
-                    // 平行處理：同時開始「檢查商店狀態」與「LIFF 登入」
-                    checkStoreStatus(); // 這個決定何時關閉大遮罩
-                    initLiff();         // 這個在背景慢慢跑，好了會更新右上角
+                    checkStoreStatus(); 
+                    initLiff();         
                     loadHistory();
                 });
 
                 const totalQty = computed(() => Object.values(cart.value).reduce((a, b) => a + b, 0));
-                
                 const totalPrice = computed(() => {
                     return Object.entries(cart.value).reduce((t, [id, q]) => {
                         const product = getProductInfo(id);
@@ -493,26 +433,15 @@
                     }, 0);
                 });
 
-                const getMenuItem = (id) => menu.value.find(i => i.id == id);
-
                 const updateCart = (id, d) => { const n = Math.max(0, (cart.value[id] || 0) + d); n === 0 ? delete cart.value[id] : cart.value[id] = n; };
                 const resetForm = () => { cart.value = {}; step.value = 1; form.value.remark = ''; };
                 const closeLiff = () => liff.isInClient() ? liff.closeWindow() : alert('請直接關閉視窗');
 
+                // 🚀 重點優化：拔除 no-cors 並加入重試邏輯
                 const submitOrder = async () => {
                     if (!form.value.unit || !form.value.phone || !form.value.address || !form.value.time) return alert('請填寫所有必填欄位 (*) 喔！');
                     
-                    // 若 LIFF 還在載入，稍微擋一下，或直接用訪客身分送出 (這裡選擇稍微提醒)
-                    if (isLoggingIn.value) {
-                         // 其實也可以不擋，直接送出，後端會收到「訪客」
-                         // 但為了確保名字正確，這裡稍微顯示不同的載入文字
-                         loadingText.value = '正在確認身分並傳送...';
-                    } else {
-                        loadingText.value = '正在傳送訂單...';
-                    }
-                    
                     isLoading.value = true;
-                    
                     const payload = {
                         ...form.value,
                         name: profile.value.displayName || '訪客',
@@ -523,19 +452,47 @@
                         totalPrice: totalPrice.value
                     };
 
-                    try {
-                        await fetch(CONFIG.API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-                        saveToHistory(payload);
-                        setTimeout(() => { step.value = 3; isLoading.value = false; }, 800);
-                    } catch (err) { alert('網路連線似乎有問題'); isLoading.value = false; }
+                    let retries = 3;
+                    let isSuccess = false;
+                    let currentLoadingText = isLoggingIn.value ? '正在確認身分並傳送...' : '正在為您處理訂單...';
+
+                    while (retries > 0 && !isSuccess) {
+                        try {
+                            loadingText.value = retries === 3 ? currentLoadingText : `網路不給力，重試中... (${4-retries}/3)`;
+                            
+                            // 🚀 修改：移除 no-cors，改用純文字傳輸 JSON 以讀取回傳結果
+                            const response = await fetch(CONFIG.API_URL, { 
+                                method: 'POST', 
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                                body: JSON.stringify(payload) 
+                            });
+                            
+                            const result = await response.json();
+
+                            if (result.status === "success") {
+                                isSuccess = true;
+                                saveToHistory(payload);
+                                setTimeout(() => { step.value = 3; isLoading.value = false; }, 500);
+                            } else {
+                                throw new Error(result.message || "系統回報異常");
+                            }
+                        } catch (err) {
+                            console.error(`傳送嘗試失敗:`, err);
+                            retries--;
+                            if (retries === 0) {
+                                isLoading.value = false;
+                                alert('⚠️ 訂單傳送失敗！\n\n伺服器可能正在忙碌或網路極度不穩。為了確保您的用餐，請「直接來電訂購」，造成不便請見諒！');
+                                return;
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 1500));
+                        }
+                    }
                 };
 
                 return { 
-                    step, isLoading, loadingText, cart, profile, form, menu, 
-                    totalQty, totalPrice, updateCart, submitOrder, closeLiff, 
-                    resetForm, handleImageError, timeOptions, shopStatus,
-                    getProductInfo, showHistory, orderHistory, clearHistory,
-                    isLoggingIn // 匯出以控制右上角顯示
+                    step, isLoading, loadingText, cart, profile, form, menu, totalQty, totalPrice, 
+                    updateCart, submitOrder, closeLiff, resetForm, handleImageError, timeOptions, 
+                    shopStatus, getProductInfo, showHistory, orderHistory, clearHistory, isLoggingIn
                 };
             }
         }).mount('#app');
