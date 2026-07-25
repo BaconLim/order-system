@@ -336,11 +336,9 @@
     <script>
         const CONFIG = {
             LIFF_ID: '2008669562-G6If46m2', 
-            // Supabase 設定（請在 Supabase 建立專案後填入對應的 URL 與 Anon Key）
-            SUPABASE_URL: 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co',
-            SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
-            // 備用與相容 GAS URL
-            API_URL: 'https://script.google.com/macros/s/AKfycbxiag2vvebq1Fm6501meAUYXkE1IKZB-1CKzZMScB1WBWqaLBvwqxssEEXyixD8Capr/exec'
+            SUPABASE_URL: 'https://hnzjvnjlbkttfrdfkizs.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhuemp2bmpsYmt0dGZyZGZraXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTE4ODAsImV4cCI6MjEwMDU2Nzg4MH0.DN_9IL7-bKpf0ZghgXx2WRIDZA32rPjZNVQ-V_c-VwM',
+            API_URL: '/api/orders'
         };
 
         const { createApp, ref, computed, onMounted } = Vue;
@@ -430,19 +428,16 @@
                 const checkStoreStatus = async () => {
                     try {
                         if (supabaseClient) {
-                            // 從 Supabase 讀取店家狀態與當日笑話
                             const { data, error } = await supabaseClient
-                                .from('store_config')
-                                .select('key, value');
+                                .from('system_settings')
+                                .select('status')
+                                .eq('id', 1)
+                                .single();
                             if (!error && data) {
-                                const statusRow = data.find(r => r.key === 'shop_status');
-                                if (statusRow) shopStatus.value = statusRow.value;
-                                const jokeRow = data.find(r => r.key === 'daily_joke');
-                                if (jokeRow) dailyJoke.value = jokeRow.value;
+                                shopStatus.value = data.status || 'open';
                             }
                         } else {
-                            // 備用 GAS
-                            const res = await fetch(CONFIG.API_URL);
+                            const res = await fetch('/api/admin/status');
                             const data = await res.json();
                             if (data.status) shopStatus.value = data.status;
                         }
@@ -586,34 +581,22 @@
                         try {
                             loadingText.value = retries === 3 ? baseLoadingText : `網路連線微弱，正在重新連線... (${4-retries}/3)`;
 
-                            if (supabaseClient) {
-                                // 直接寫入 Supabase 資料庫 orders 資料表
-                                const { data, error } = await supabaseClient
-                                    .from('orders')
-                                    .insert([payload])
-                                    .select();
-
-                                if (error) throw error;
+                            const response = await fetch(CONFIG.API_URL, { 
+                                method: 'POST', 
+                                headers: { 'Content-Type': 'application/json' }, 
+                                body: JSON.stringify({
+                                    ...form.value,
+                                    name: payload.customer_name || '訪客',
+                                    items: payload.items,
+                                    totalPrice: payload.total_price
+                                }) 
+                            });
+                            const result = await response.json();
+                            if (result.status === "success") {
                                 isSuccess = true;
+                                if (result.joke && result.joke.trim() !== "") dailyJoke.value = result.joke;
                             } else {
-                                // 相容原本 GAS POST
-                                const response = await fetch(CONFIG.API_URL, { 
-                                    method: 'POST', 
-                                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                                    body: JSON.stringify({
-                                        ...form.value,
-                                        name: payload.customer_name,
-                                        items: payload.items,
-                                        totalPrice: payload.total_price
-                                    }) 
-                                });
-                                const result = await response.json();
-                                if (result.status === "success") {
-                                    isSuccess = true;
-                                    if (result.joke && result.joke.trim() !== "") dailyJoke.value = result.joke;
-                                } else {
-                                    throw new Error(result.message || "系統回報異常");
-                                }
+                                throw new Error(result.message || "系統回報異常");
                             }
 
                             if (isSuccess) {

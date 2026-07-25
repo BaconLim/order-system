@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>千葉素食便當 - 後台控制中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-gray-800 rounded-2xl p-6 shadow-2xl border border-gray-700">
+        <h1 class="text-2xl font-bold text-center mb-6 text-green-400">🍱 店家營業狀態控制</h1>
+        
+        <!-- 當前狀態卡片 -->
+        <div class="bg-gray-900 rounded-xl p-4 mb-6 text-center border border-gray-700">
+            <p class="text-xs text-gray-400 mb-1">目前營業狀態</p>
+            <div id="currentStatus" class="text-2xl font-bold text-yellow-400">載入中...</div>
+        </div>
+
+        <!-- 密碼輸入框 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-2 text-gray-300">管理員密碼</label>
+            <input type="password" id="adminPassword" placeholder="預設密碼為 1234" class="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl focus:outline-none focus:border-green-500 text-white">
+        </div>
+
+        <!-- 狀態切換按鈕 -->
+        <div class="space-y-3">
+            <button onclick="setStatus('open')" class="w-full py-4 bg-green-600 hover:bg-green-500 rounded-xl font-bold text-lg transition shadow-lg flex items-center justify-center gap-2">
+                🟢 恢復接單 (Open)
+            </button>
+            <button onclick="setStatus('stop')" class="w-full py-4 bg-yellow-600 hover:bg-yellow-500 rounded-xl font-bold text-lg transition shadow-lg flex items-center justify-center gap-2">
+                🛑 暫停外送 (Stop)
+            </button>
+            <button onclick="setStatus('closed')" class="w-full py-4 bg-red-600 hover:bg-red-500 rounded-xl font-bold text-lg transition shadow-lg flex items-center justify-center gap-2">
+                ⛔ 本日公休 (Closed)
+            </button>
+        </div>
+
+        <p id="msg" class="text-center text-sm mt-4 min-h-[20px]"></p>
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/admin/status');
+                const data = await res.json();
+                const statusEl = document.getElementById('currentStatus');
+                if (data.status === 'open') {
+                    statusEl.innerText = '🟢 正常接單中 (open)';
+                    statusEl.className = 'text-2xl font-bold text-green-400';
+                } else if (data.status === 'stop') {
+                    statusEl.innerText = '🛑 暫停外送 (stop)';
+                    statusEl.className = 'text-2xl font-bold text-yellow-400';
+                } else if (data.status === 'closed') {
+                    statusEl.innerText = '⛔ 本日公休 (closed)';
+                    statusEl.className = 'text-2xl font-bold text-red-400';
+                }
+            } catch (e) {
+                document.getElementById('currentStatus').innerText = '讀取失敗';
+            }
+        }
+
+        async function setStatus(status) {
+            const password = document.getElementById('adminPassword').value;
+            const msgEl = document.getElementById('msg');
+            msgEl.innerText = '處理中...';
+            msgEl.className = 'text-center text-sm mt-4 text-gray-400';
+
+            try {
+                const res = await fetch('/api/admin/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status, adminPassword: password })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    msgEl.innerText = '✅ 狀態變更成功！';
+                    msgEl.className = 'text-center text-sm mt-4 text-green-400 font-bold';
+                    fetchStatus();
+                } else {
+                    msgEl.innerText = '❌ ' + (data.error || '變更失敗');
+                    msgEl.className = 'text-center text-sm mt-4 text-red-400 font-bold';
+                }
+            } catch (e) {
+                msgEl.innerText = '❌ 網路請求失敗';
+                msgEl.className = 'text-center text-sm mt-4 text-red-400 font-bold';
+            }
+        }
+
+        fetchStatus();
+    </script>
+</body>
+</html>
