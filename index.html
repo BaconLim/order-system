@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         html, body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
@@ -323,10 +324,20 @@
     <script>
         const CONFIG = {
             LIFF_ID: '2008669562-G6If46m2', 
+            // Supabase 設定（請在 Supabase 建立專案後填入對應的 URL 與 Anon Key）
+            SUPABASE_URL: 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co',
+            SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+            // 備用與相容 GAS URL
             API_URL: 'https://script.google.com/macros/s/AKfycbxiag2vvebq1Fm6501meAUYXkE1IKZB-1CKzZMScB1WBWqaLBvwqxssEEXyixD8Capr/exec'
         };
 
         const { createApp, ref, computed, onMounted } = Vue;
+
+        // 初始化 Supabase Client (若設定已填寫)
+        let supabaseClient = null;
+        if (window.supabase && CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('YOUR_SUPABASE')) {
+            supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        }
 
         createApp({
             setup() {
@@ -368,11 +379,26 @@
 
                 const checkStoreStatus = async () => {
                     try {
-                        const res = await fetch(CONFIG.API_URL);
-                        const data = await res.json();
-                        if (data.status) shopStatus.value = data.status;
-                    } catch (e) { console.error('檢查狀態失敗', e); }
-                    finally {
+                        if (supabaseClient) {
+                            // 從 Supabase 讀取店家狀態與當日笑話
+                            const { data, error } = await supabaseClient
+                                .from('store_config')
+                                .select('key, value');
+                            if (!error && data) {
+                                const statusRow = data.find(r => r.key === 'shop_status');
+                                if (statusRow) shopStatus.value = statusRow.value;
+                                const jokeRow = data.find(r => r.key === 'daily_joke');
+                                if (jokeRow) dailyJoke.value = jokeRow.value;
+                            }
+                        } else {
+                            // 備用 GAS
+                            const res = await fetch(CONFIG.API_URL);
+                            const data = await res.json();
+                            if (data.status) shopStatus.value = data.status;
+                        }
+                    } catch (e) { 
+                        console.error('檢查狀態失敗', e); 
+                    } finally {
                         isLoading.value = false;
                     }
                 };
@@ -441,7 +467,7 @@
                 const encodeURI = (url) => {
                     if (!url) return '';
                     try {
-                        return encodeURI(url);
+                        return window.encodeURI(url);
                     } catch (e) {
                         return url;
                     }
@@ -487,13 +513,18 @@
                     isLoading.value = true;
                     
                     const payload = {
-                        ...form.value,
-                        name: profile.value.displayName || '訪客',
+                        customer_name: profile.value.displayName || '訪客',
+                        unit: form.value.unit,
+                        phone: form.value.phone,
+                        address: form.value.address,
+                        pickup_time: form.value.time,
+                        remark: form.value.remark || '',
+                        total_price: totalPrice.value,
                         items: Object.entries(cart.value).map(([id, q]) => {
                             const product = getProductInfo(id);
                             return { name: product.name, qty: q, price: product.price };
                         }),
-                        totalPrice: totalPrice.value
+                        status: 'pending'
                     };
 
                     let retries = 3;
@@ -503,28 +534,44 @@
                     while (retries > 0 && !isSuccess) {
                         try {
                             loadingText.value = retries === 3 ? baseLoadingText : `網路連線微弱，正在重新連線... (${4-retries}/3)`;
-                            
-                            const response = await fetch(CONFIG.API_URL, { 
-                                method: 'POST', 
-                                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                                body: JSON.stringify(payload) 
-                            });
-                            
-                            const result = await response.json();
 
-                            if (result.status === "success") {
+                            if (supabaseClient) {
+                                // 直接寫入 Supabase 資料庫 orders 資料表
+                                const { data, error } = await supabaseClient
+                                    .from('orders')
+                                    .insert([payload])
+                                    .select();
+
+                                if (error) throw error;
                                 isSuccess = true;
-                                
-                                if (result.joke && result.joke.trim() !== "") {
-                                    dailyJoke.value = result.joke;
-                                } else {
-                                    dailyJoke.value = "雖然沒有笑話，但千葉祝您用餐愉快！";
-                                }
-
-                                saveToHistory(payload);
-                                setTimeout(() => { step.value = 3; isLoading.value = false; }, 500);
                             } else {
-                                throw new Error(result.message || "系統回報異常");
+                                // 相容原本 GAS POST
+                                const response = await fetch(CONFIG.API_URL, { 
+                                    method: 'POST', 
+                                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                                    body: JSON.stringify({
+                                        ...form.value,
+                                        name: payload.customer_name,
+                                        items: payload.items,
+                                        totalPrice: payload.total_price
+                                    }) 
+                                });
+                                const result = await response.json();
+                                if (result.status === "success") {
+                                    isSuccess = true;
+                                    if (result.joke && result.joke.trim() !== "") dailyJoke.value = result.joke;
+                                } else {
+                                    throw new Error(result.message || "系統回報異常");
+                                }
+                            }
+
+                            if (isSuccess) {
+                                saveToHistory({
+                                    time: form.value.time,
+                                    items: payload.items,
+                                    totalPrice: payload.total_price
+                                });
+                                setTimeout(() => { step.value = 3; isLoading.value = false; }, 500);
                             }
                             
                         } catch (err) {
