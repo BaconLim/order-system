@@ -212,9 +212,15 @@
             </div>
 
             <form @submit.prevent="submitOrder" class="bg-white rounded-xl p-5 shadow-sm space-y-4">
-                <div class="flex items-center mb-2">
-                    <span class="w-1 h-5 bg-[#06C755] mr-2 rounded-full"></span>
-                    <h3 class="font-bold text-gray-800">外送資訊</h3>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <span class="w-1 h-5 bg-[#06C755] mr-2 rounded-full"></span>
+                        <h3 class="font-bold text-gray-800">外送資訊</h3>
+                    </div>
+                    <div v-if="hasSavedInfo" class="flex items-center text-[11px] bg-green-50 text-[#06C755] px-2 py-0.5 rounded-full border border-green-100 font-medium">
+                        <span class="mr-1">⚡ 已自動帶入常客資訊</span>
+                        <button type="button" @click="clearSavedInfo" class="text-gray-400 hover:text-red-500 font-bold ml-1 text-xs">✕</button>
+                    </div>
                 </div>
                 <div class="space-y-4">
                     <div>
@@ -244,6 +250,12 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">備註 (選填)</label>
                         <textarea v-model="form.remark" placeholder="例如：自備餐具、不加調料..." rows="5" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#06C755] focus:border-transparent outline-none transition-all text-sm resize-none"></textarea>
+                    </div>
+                    <div class="flex items-center pt-1 border-t border-gray-100">
+                        <label class="flex items-center text-xs text-gray-600 cursor-pointer select-none">
+                            <input type="checkbox" v-model="rememberInfo" class="w-4 h-4 text-[#06C755] accent-[#06C755] rounded border-gray-300 focus:ring-[#06C755] mr-2">
+                            <span>記住此外送資訊（下次下單免重複輸入）</span>
+                        </label>
                     </div>
                 </div>
             </form>
@@ -354,6 +366,8 @@
                 const showHistory = ref(false);
                 const orderHistory = ref([]);
                 const dailyJoke = ref(""); 
+                const rememberInfo = ref(true);
+                const hasSavedInfo = ref(false);
 
                 const form = ref({
                     unit: '',
@@ -362,6 +376,42 @@
                     time: '',
                     remark: ''
                 });
+
+                const loadSavedCustomerInfo = () => {
+                    const saved = localStorage.getItem('chiba_customer_info');
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            if (data.unit) form.value.unit = data.unit;
+                            if (data.phone) form.value.phone = data.phone;
+                            if (data.address) form.value.address = data.address;
+                            hasSavedInfo.value = true;
+                        } catch (e) {}
+                    }
+                };
+
+                const saveCustomerInfo = () => {
+                    if (rememberInfo.value) {
+                        const data = {
+                            unit: form.value.unit,
+                            phone: form.value.phone,
+                            address: form.value.address
+                        };
+                        localStorage.setItem('chiba_customer_info', JSON.stringify(data));
+                        hasSavedInfo.value = true;
+                    } else {
+                        localStorage.removeItem('chiba_customer_info');
+                        hasSavedInfo.value = false;
+                    }
+                };
+
+                const clearSavedInfo = () => {
+                    localStorage.removeItem('chiba_customer_info');
+                    form.value.unit = '';
+                    form.value.phone = '';
+                    form.value.address = '';
+                    hasSavedInfo.value = false;
+                };
 
                 const generateTimeOptions = () => {
                     let h = 10, m = 30;
@@ -490,6 +540,7 @@
                     checkStoreStatus(); 
                     initLiff();         
                     loadHistory();
+                    loadSavedCustomerInfo();
                 });
 
                 const totalQty = computed(() => Object.values(cart.value).reduce((a, b) => a + b, 0));
@@ -566,6 +617,7 @@
                             }
 
                             if (isSuccess) {
+                                saveCustomerInfo();
                                 saveToHistory({
                                     time: form.value.time,
                                     items: payload.items,
@@ -593,7 +645,7 @@
                     totalQty, totalPrice, updateCart, submitOrder, closeLiff, 
                     resetForm, handleImageError, encodeURI, timeOptions, shopStatus,
                     getProductInfo, showHistory, orderHistory, clearHistory,
-                    isLoggingIn, dailyJoke 
+                    isLoggingIn, dailyJoke, rememberInfo, hasSavedInfo, clearSavedInfo
                 };
             }
         }).mount('#app');
